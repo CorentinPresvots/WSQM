@@ -87,6 +87,16 @@ After quantization, the coefficients are binarized using:
 - An iterative process adjusts **Qmin** and **Qmax** to minimize distortion while satisfying the bitrate or quality constraint.  
 - Part of the bit budget is reserved for encoding **Qmin**, **Qmax**, and the chosen quantization model.  
 
+---
+
+## Evaluation of Reimplemented WSQM Method vs. Original Method
+
+![Reconstructed signal using the WSQM method](Comparison.png)
+
+*Figure: Global SNR (dB) (4) as a function of Compression Ratio (CR) for the EPRI database, focusing on voltage phase A (right) and current phase A (left), with an initial rate of 16 bits per sample. Black: image extracted from [Nascimento et al., 2020](https://ieeexplore.ieee.org/abstract/document/8950328); Blue: results obtained using our partial implementation of WSQM. Refer to [Nascimento et al., 2020](https://ieeexplore.ieee.org/abstract/document/8950328) for experimental details on how these results were obtained.*
+
+---
+
 # Prerequisites
 
 - numpy
