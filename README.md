@@ -1,10 +1,13 @@
-# Overcomplete Hybrid Dictionaries
+# Wavelet Spectral Quantization Models
 
 This repository provides a Python-based implementation of the method described in the article:  
-**Sabarimalai Manikandan, M., Kamwa, I., and Samantaray, S. R. (2015).**  
-*"Simultaneous denoising and compression of power system disturbances using sparse representation on overcomplete hybrid dictionaries."*  
-**IET Generation, Transmission & Distribution, 9(11), 1077–1088.**  
-[doi:10.1049/iet-gtd.2014.0806](https://ietresearch.onlinelibrary.wiley.com/doi/full/10.1049/iet-gtd.2014.0806)
+
+---
+
+**Francisco A. de O. Nascimento, Raimundo G. Saraiva, Jr. and Jorge Corman.**  
+*"Improved Transient Data Compression Algorithm Based on Wavelet Spectral Quantization Models."*  
+**IEEE Transactions on POWER DELIVERY VOL. 35, NO. 5, OCTOBER 2020.**  
+[[https://ietresearch.onlinelibrary.wiley.com/doi/full/10.1049/iet-gtd.2014.0806](https://ieeexplore.ieee.org/abstract/document/7336565)](https://ieeexplore.ieee.org/abstract/document/8950328)
 
 The code is provided as an open-source implementation since the original article did not include one. This repository can serve as a starting point for researchers and engineers interested in experimenting with or extending the method’s capabilities.
 
@@ -13,8 +16,8 @@ The code is provided as an open-source implementation since the original article
 ## Main Scripts
 
 This repository includes two main scripts:  
-- **OHD_Rate_Constraint:** Implements the method with a fixed bit rate constraint.  
-- **OHD_Quality_Constraint:** Implements the method with a fixed quality constraint.  
+- **WSQM_Rate_Constraint:** Implements the method with a fixed bit rate constraint.  
+- **WSQM_Quality_Constraint:** Implements the method with a fixed quality constraint.  
 
 Either script can be run directly after downloading the full OHD code.
 
@@ -43,104 +46,46 @@ By default, the code uses 12 three-phase voltage signals from the [Data_S](https
 
 ---
 
-## Description of Reimplemented Method for Quality Constraint
+## **Overview**  
+WSQM (Wavelet-Based Scalable Quantization Method) is a quantization and encoding technique designed for wavelet-transformed signals. The method applies different quantization models to efficiently allocate bits while minimizing distortion under a given bitrate constraint. This repository provides an implementation of WSQM, including wavelet decomposition, quantization, binarization, and entropy coding.  
 
-The approach simultaneously denoises and compresses power system disturbances by leveraging sparse representation over a hybrid dictionary that combines impulse, discrete cosine, and discrete sine bases. By using overcomplete dictionaries, the method reduces block boundary artifacts and facilitates direct estimation of power quantities from the coefficients associated with sinusoidal components.
+## **Methodology**  
 
-### Dictionary Construction
-The dictionary, $\boldsymbol{D}$, is a concatenation of three matrices:
+### **1. Wavelet Transform**  
+- The Discrete Wavelet Transform (DWT) is applied to an input signal **x** of **N** samples using the **Coifman 5** wavelet.  
+- This decomposition results in **log₂(N)** sub-bands and one approximation coefficient.  
+
+### **2. Quantization**  
+- The wavelet coefficients in each sub-band are quantized using a **midrise quantizer**.  
+- The quantization step size for each band **k** is determined as:  
 ```math
-\boldsymbol{D} = \left[\begin{array}{lll}
-\boldsymbol{C} & \mid & \boldsymbol{S} \mid \boldsymbol{I}
-\end{array}\right]_{N \times 3N}
+  \Delta_k = \frac{2}{2^{n_k}}
 ```
+  where **nₖ** is a natural number, and **k = 1, …, log2(N)+1** represents the band index.  
 
-- **Cosine Matrix ($\boldsymbol{C}$)**: A set of sampled discrete cosine waveforms ($N \times N$), where
+### **3. Quantization Models**  
+To determine the values of **nₖ**, different quantization two decay models are tested in this version 
+- **Linear Decay Model:**  
 ```math
-\left[\boldsymbol{C}\right]_{ij} = \sqrt{\frac{2}{N}} \cdot \varepsilon_{i} \cdot \cos\left(\frac{\pi(2j+1)i}{2N}\right),\quad i=0,\dots,N-1, \ j=0,\dots,N-1
+  B_m = (Q_{\text{max}} - Q_{\text{min}})(-2^{m-M} + 1) + Q_{\text{min}}
 ```
+  where **c₁ = Qmax - Qmin** and **c₂ = Qmin**.  
 
-  $\varepsilon_i = \frac{1}{\sqrt{2}}$ for $i = 0$, otherwise $\varepsilon_i = 1$.
-- **Sine Matrix ($\boldsymbol{S}$)**: A set of sampled discrete sine waveforms ($N \times N$), where
+- **Exponential Decay Model:**  
 ```math
-\left[\boldsymbol{S}\right]_{ij} = \sqrt{\frac{2}{N}} \cdot \varepsilon_{i} \cdot \sin\left(\frac{\pi(2j+1)(i+1)}{2N}\right),\quad i=0,\dots,N-1.
+  B_m = Q_{\text{min}} \left(\frac{Q_{\text{max}}}{Q_{\text{min}}}\right)^{-2^{m-M}+1}
 ```
-$\varepsilon_i = \frac{1}{\sqrt{2}}$ for $i = 0$, otherwise $\varepsilon_i = 1$.
-- **Impulse Matrix ($\boldsymbol{I}$)**: An identity matrix ($N \times N$) representing discrete impulses.
-### Sparse Approximation and Matching Pursuit
-The sparse representation is achieved using a matching pursuit algorithm that iteratively selects the vectors of $\boldsymbol{D}=(\boldsymbol{d} \_1,\dots,\boldsymbol{d} \_{3N})^T$ that best reduce the approximation error. This can be expressed as
-```math
-MSE = \frac{1}{N} \left\| \mathbf{x} - \sum_{j=1}^{K} \widehat{\alpha}_j \mathbf{d}_{\widehat{i}_j} \right\|^2,
-```
-where 
+  where **c₁ = Qmin** and **c₂ = (Qmax / Qmin)**.  
 
-```math
-\widehat{\alpha}_1, \ldots, \widehat{\alpha}_K, \widehat{i}_1, \ldots, \widehat{i}_K=\arg \min_{\alpha_1, \ldots, \alpha_K, i_1, \ldots, i_K} \frac{1}{N} \left\| \mathbf{x} - \sum_{j=1}^{K} \alpha_j \mathbf{d}_{i_j} \right\|^2.
-```
-The process continues until $MSE \leqslant MSE_{\text{max}}$.
+### **4. Binarization and Entropy Coding**  
+After quantization, the coefficients are binarized using:  
+1. **Exponential-Golomb Coding** to represent quantized coefficients efficiently.  
+2. **CABAC (Context-Based Adaptive Binary Arithmetic Coding)**, which encodes each bit with a distinct context for different binary weights.  
 
-### Coefficient Reordering
-Since the dictionary is not orthogonal, the coefficients $\widehat{\alpha}_1, \ldots, \widehat{\alpha}_K$ are sorted in descending order
-```math
-\pi : \{1, \ldots, K\} \to \{\widehat{\alpha}_1, \ldots, \widehat{\alpha}_K\}
-```
-
-so that $\pi(1) < \pi(2) < \ldots < \pi(K)$. The corresponding reordered coefficients are
-```math
-\{\alpha_{\pi(1)}, \alpha_{\pi(2)}, \ldots, \alpha_{\pi(K)}\},
-```
-and the corresponding reordered dictionary atoms are:
-```math
-\{\mathbf{d}_{\pi(1)}, \mathbf{d}_{\pi(2)}, \ldots, \mathbf{d}_{\pi(K)}\}.
-```
-
-### Coefficient Quantization
-The reordered coefficients are quantized using a Jayant quantizer. The goal is to find the minimum value of $n_\alpha$ such that
-```math
-MSE = \frac{1}{N} \left\| \mathbf{x} - \sum_{j=1}^{K} \widetilde{\alpha}_{\pi(j)} \mathbf{d}_{\widehat{i}_{\pi(j)}} \right\|^2,
-```
-where
-```math
-\widetilde{\alpha}_{\pi(j)} = \Delta_{\pi(j)} \left\lfloor \frac{\alpha_{\pi(j)}}{\Delta_{\pi(j)}} \right\rfloor + \frac{\Delta_{\pi(j)}}{2},
-```
-and
-```math
-\Delta_{\pi(j)} = \frac{w_{\pi(j)}}{2^{n_\alpha}}.
-```
-Here, $w_{\pi(j)}$ is the dynamic range of coefficient ${\pi(j)}$. For example, $w_{\pi(1)} = \sqrt{2N}$ or $w_1 = 2$ for cosine or impulse coefficients.
-
-For subsequent coefficients
-```math
-w_{{\pi(j+1)}} =
-\begin{cases}
-\frac{w_{\pi(j)}}{2^k}, & \text{if } k > 0, \\
-w_{\pi(j)}, & \text{otherwise}.
-\end{cases}
-```
-The parameter $k$ is selected to minimize the difference between $w_{\pi(j)} / 2$ and $| \widetilde{\alpha} \_{\pi(j)} | \cdot 2^k$, subject to the constraint $w_{\pi(j)} / 2 - | \widetilde{\alpha} \_{\pi(j)} | \cdot 2^k > 0$.
-
-
-### Position Encoding
-
-The positions of the selected coefficients are encoded as follows:  
-Given the set of selected basis vectors $\mathbf{d} \_{\pi(1)}, \mathbf{d} \_{\pi(2)}, \ldots, \mathbf{d} \_{\pi(K)}$, the differences between consecutive indices are computed as  
-```math
-\delta_k = \pi(i_{k+1}) - \pi(i_k), \quad k > 0.  
-``` 
-This results in the sequence  
-```math
-\{\pi(1), \delta_2, \ldots, \delta_K\}.  
-```
-Each difference $\delta_k$ is encoded using an exponential Golomb code, where one bit is used to indicate the sign.
-
-Finally, Context-based Binary Arithmetic Coding (CABAC) is applied to improve compression efficiency. Each group of two bits—(0,0), (0,1), (1,0), and (1,1)—from the Exponential-Golomb-coded differences is encoded using distinct contexts. This approach captures the correlation between consecutive bits, further enhancing compression performance.
-
----
-
-## Description of Reimplemented Method for Rate Constraint
-
-We used the same approach as before, but for different quality levels (corresponding to a fixed number of atoms). In this case, we search for the number of atoms that minimizes the reconstruction error while ensuring that the total rate does not exceed the constraint $n_\text{tot}$.
-
+### **5. Rate - Quality Optimization**  
+- The reconstructed signal is evaluated based on **bitrate** and **distortion**.  
+- An iterative process adjusts **Qmin** and **Qmax** to minimize distortion while satisfying the bitrate or quality constraint.  
+- Part of the bit budget is reserved for encoding **Qmin**, **Qmax**, and the chosen quantization model.  
 
 # Prerequisites
 
