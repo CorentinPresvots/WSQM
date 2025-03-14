@@ -360,7 +360,7 @@ print("time to encode {:.0f} signal(s) ({} phase(s)) of {:.2f} seconde(s): {:.2f
 
 
 
-t=np.linspace(0,(nb_w)*(N-1)*(1/fs),nb_w*N)
+t = np.linspace(0, (nb_w*N - 1) * (1 / fs), nb_w * N)
 
   
 for id_signal in range(nb_signal):
